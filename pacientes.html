@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controle de Pacientes - Oftalmologia</title>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .upload-section {
+            border: 3px dashed #667eea;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 30px;
+            background: #f8f9ff;
+            transition: all 0.3s ease;
+        }
+
+        .upload-section:hover {
+            border-color: #764ba2;
+            background: #f0f2ff;
+        }
+
+        .upload-section.dragover {
+            border-color: #764ba2;
+            background: #e8ebff;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .upload-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 16px;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .upload-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .upload-icon {
+            font-size: 50px;
+            margin-bottom: 15px;
+        }
+
+        #preview {
+            max-width: 100%;
+            max-height: 300px;
+            margin: 20px auto;
+            display: none;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .progress-container {
+            display: none;
+            margin: 20px 0;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            text-align: center;
+            margin-top: 10px;
+            color: #666;
+        }
+
+        .manual-input {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f5f5f5;
+            border-radius: 10px;
+        }
+
+        .manual-input h3 {
+            margin-top: 0;
+            color: #333;
+        }
+
+        .manual-input textarea {
+            width: 100%;
+            height: 100px;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 14px;
+            resize: vertical;
+        }
+
+        .manual-input textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .add-manual-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 10px 25px;
+            font-size: 14px;
+            border-radius: 20px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .add-manual-btn:hover {
+            background: #218838;
+        }
+
+        .table-container {
+            display: none;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+        }
+
+        tr:hover {
+            background: #f8f9ff;
+        }
+
+        .checkbox-cell {
+            text-align: center;
+        }
+
+        .checkbox-cell input[type="checkbox"] {
+            width: 22px;
+            height: 22px;
+            cursor: pointer;
+            accent-color: #667eea;
+        }
+
+        .patient-name {
+            font-weight: 500;
+            color: #333;
+        }
+
+        .patient-number {
+            color: #999;
+            font-size: 12px;
+        }
+
+        .actions {
+            margin-top: 30px;
+            text-align: center;
+        }
+
+        .action-btn {
+            padding: 12px 30px;
+            font-size: 14px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            margin: 5px;
+            transition: all 0.2s;
+        }
+
+        .save-btn {
+            background: #28a745;
+            color: white;
+        }
+
+        .save-btn:hover {
+            background: #218838;
+        }
+
+        .clear-btn {
+            background: #dc3545;
+            color: white;
+        }
+
+        .clear-btn:hover {
+            background: #c82333;
+        }
+
+        .export-btn {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .export-btn:hover {
+            background: #138496;
+        }
+
+        .delete-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 5px 12px;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .delete-btn:hover {
+            background: #c82333;
+        }
+
+        .summary {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9ff;
+            border-radius: 10px;
+            display: none;
+        }
+
+        .summary h3 {
+            margin-top: 0;
+            color: #333;
+        }
+
+        .summary-item {
+            display: inline-block;
+            margin: 10px 20px 10px 0;
+            padding: 10px 20px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .summary-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .summary-label {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .date-display {
+            text-align: center;
+            color: #666;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 15px;
+            }
+
+            th, td {
+                padding: 10px 5px;
+                font-size: 14px;
+            }
+
+            .action-btn {
+                display: block;
+                width: 100%;
+                margin: 10px 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Controle de Pacientes</h1>
+        <p class="subtitle">Upload de lista de pacientes para rastreamento de exames</p>
+        <p class="date-display" id="dateDisplay"></p>
+
+        <div class="upload-section" id="uploadSection">
+            <div class="upload-icon">📷</div>
+            <p>Arraste uma imagem aqui ou clique para selecionar</p>
+            <input type="file" id="fileInput" accept="image/*">
+            <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
+                Selecionar Imagem
+            </button>
+            <img id="preview" alt="Preview da imagem">
+        </div>
+
+        <div class="progress-container" id="progressContainer">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <p class="progress-text" id="progressText">Processando imagem...</p>
+        </div>
+
+        <div class="manual-input">
+            <h3>Ou adicione pacientes manualmente</h3>
+            <textarea id="manualNames" placeholder="Digite os nomes dos pacientes, um por linha:&#10;Maria Silva&#10;Joao Santos&#10;Ana Oliveira"></textarea>
+            <button class="add-manual-btn" onclick="addManualPatients()">Adicionar Pacientes</button>
+        </div>
+
+        <div class="table-container" id="tableContainer">
+            <table id="patientTable">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Nome do Paciente</th>
+                        <th class="checkbox-cell">Consulta</th>
+                        <th class="checkbox-cell">Retinografia</th>
+                        <th class="checkbox-cell">Mapeamento</th>
+                        <th>Acao</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                </tbody>
+            </table>
+        </div>
+
+        <div class="summary" id="summary">
+            <h3>Resumo</h3>
+            <div class="summary-item">
+                <div class="summary-number" id="totalPatients">0</div>
+                <div class="summary-label">Total de Pacientes</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-number" id="totalConsultas">0</div>
+                <div class="summary-label">Consultas Realizadas</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-number" id="totalRetinografias">0</div>
+                <div class="summary-label">Retinografias</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-number" id="totalMapeamentos">0</div>
+                <div class="summary-label">Mapeamentos</div>
+            </div>
+        </div>
+
+        <div class="actions" id="actions" style="display: none;">
+            <button class="action-btn save-btn" onclick="saveData()">Salvar Dados</button>
+            <button class="action-btn export-btn" onclick="exportCSV()">Exportar CSV</button>
+            <button class="action-btn clear-btn" onclick="clearAll()">Limpar Tudo</button>
+        </div>
+    </div>
+
+    <script>
+        let patients = [];
+
+        // Mostrar data atual
+        document.getElementById('dateDisplay').textContent =
+            'Data: ' + new Date().toLocaleDateString('pt-BR', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+
+        // Carregar dados salvos
+        window.onload = function() {
+            const saved = localStorage.getItem('patientData');
+            if (saved) {
+                patients = JSON.parse(saved);
+                renderTable();
+            }
+        };
+
+        // Drag and drop
+        const uploadSection = document.getElementById('uploadSection');
+
+        uploadSection.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadSection.classList.add('dragover');
+        });
+
+        uploadSection.addEventListener('dragleave', () => {
+            uploadSection.classList.remove('dragover');
+        });
+
+        uploadSection.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadSection.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file && file.type.startsWith('image/')) {
+                processImage(file);
+            }
+        });
+
+        // File input
+        document.getElementById('fileInput').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                processImage(file);
+            }
+        });
+
+        function processImage(file) {
+            // Mostrar preview
+            const preview = document.getElementById('preview');
+            preview.src = URL.createObjectURL(file);
+            preview.style.display = 'block';
+
+            // Mostrar progresso
+            const progressContainer = document.getElementById('progressContainer');
+            const progressFill = document.getElementById('progressFill');
+            const progressText = document.getElementById('progressText');
+            progressContainer.style.display = 'block';
+
+            // Processar OCR com Tesseract.js
+            Tesseract.recognize(file, 'por', {
+                logger: (m) => {
+                    if (m.status === 'recognizing text') {
+                        const progress = Math.round(m.progress * 100);
+                        progressFill.style.width = progress + '%';
+                        progressText.textContent = `Reconhecendo texto... ${progress}%`;
+                    }
+                }
+            }).then(({ data: { text } }) => {
+                progressText.textContent = 'Concluido! Processando nomes...';
+
+                // Extrair nomes do texto
+                const lines = text.split('\n')
+                    .map(line => line.trim())
+                    .filter(line => {
+                        // Filtrar linhas que parecem ser nomes
+                        return line.length > 2 &&
+                               /[a-zA-ZÀ-ÿ]/.test(line) &&
+                               !/^\d+$/.test(line);
+                    });
+
+                // Adicionar pacientes
+                lines.forEach(name => {
+                    if (!patients.find(p => p.name.toLowerCase() === name.toLowerCase())) {
+                        patients.push({
+                            name: name,
+                            consulta: false,
+                            retinografia: false,
+                            mapeamento: false
+                        });
+                    }
+                });
+
+                renderTable();
+                progressContainer.style.display = 'none';
+
+            }).catch(err => {
+                console.error(err);
+                progressText.textContent = 'Erro ao processar imagem. Tente novamente.';
+            });
+        }
+
+        function addManualPatients() {
+            const textarea = document.getElementById('manualNames');
+            const names = textarea.value.split('\n')
+                .map(name => name.trim())
+                .filter(name => name.length > 0);
+
+            names.forEach(name => {
+                if (!patients.find(p => p.name.toLowerCase() === name.toLowerCase())) {
+                    patients.push({
+                        name: name,
+                        consulta: false,
+                        retinografia: false,
+                        mapeamento: false
+                    });
+                }
+            });
+
+            textarea.value = '';
+            renderTable();
+        }
+
+        function renderTable() {
+            const tableContainer = document.getElementById('tableContainer');
+            const tableBody = document.getElementById('tableBody');
+            const actions = document.getElementById('actions');
+            const summary = document.getElementById('summary');
+
+            if (patients.length === 0) {
+                tableContainer.style.display = 'none';
+                actions.style.display = 'none';
+                summary.style.display = 'none';
+                return;
+            }
+
+            tableContainer.style.display = 'block';
+            actions.style.display = 'block';
+            summary.style.display = 'block';
+
+            tableBody.innerHTML = '';
+
+            patients.forEach((patient, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><span class="patient-number">${index + 1}</span></td>
+                    <td class="patient-name">${patient.name}</td>
+                    <td class="checkbox-cell">
+                        <input type="checkbox"
+                               ${patient.consulta ? 'checked' : ''}
+                               onchange="updatePatient(${index}, 'consulta', this.checked)">
+                    </td>
+                    <td class="checkbox-cell">
+                        <input type="checkbox"
+                               ${patient.retinografia ? 'checked' : ''}
+                               onchange="updatePatient(${index}, 'retinografia', this.checked)">
+                    </td>
+                    <td class="checkbox-cell">
+                        <input type="checkbox"
+                               ${patient.mapeamento ? 'checked' : ''}
+                               onchange="updatePatient(${index}, 'mapeamento', this.checked)">
+                    </td>
+                    <td>
+                        <button class="delete-btn" onclick="deletePatient(${index})">Remover</button>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+
+            updateSummary();
+        }
+
+        function updatePatient(index, field, value) {
+            patients[index][field] = value;
+            updateSummary();
+            saveData();
+        }
+
+        function deletePatient(index) {
+            if (confirm('Remover este paciente da lista?')) {
+                patients.splice(index, 1);
+                renderTable();
+                saveData();
+            }
+        }
+
+        function updateSummary() {
+            document.getElementById('totalPatients').textContent = patients.length;
+            document.getElementById('totalConsultas').textContent =
+                patients.filter(p => p.consulta).length;
+            document.getElementById('totalRetinografias').textContent =
+                patients.filter(p => p.retinografia).length;
+            document.getElementById('totalMapeamentos').textContent =
+                patients.filter(p => p.mapeamento).length;
+        }
+
+        function saveData() {
+            localStorage.setItem('patientData', JSON.stringify(patients));
+            // Feedback visual
+            const btn = document.querySelector('.save-btn');
+            const originalText = btn.textContent;
+            btn.textContent = 'Salvo!';
+            btn.style.background = '#28a745';
+            setTimeout(() => {
+                btn.textContent = originalText;
+            }, 1500);
+        }
+
+        function exportCSV() {
+            const date = new Date().toLocaleDateString('pt-BR').replace(/\//g, '-');
+            let csv = 'Numero,Nome,Consulta,Retinografia,Mapeamento\n';
+
+            patients.forEach((patient, index) => {
+                csv += `${index + 1},"${patient.name}",${patient.consulta ? 'Sim' : 'Nao'},${patient.retinografia ? 'Sim' : 'Nao'},${patient.mapeamento ? 'Sim' : 'Nao'}\n`;
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `pacientes_${date}.csv`;
+            link.click();
+        }
+
+        function clearAll() {
+            if (confirm('Tem certeza que deseja limpar todos os dados?')) {
+                patients = [];
+                localStorage.removeItem('patientData');
+                renderTable();
+                document.getElementById('preview').style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
